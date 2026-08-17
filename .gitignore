@@ -1,0 +1,29 @@
+# Build directory
+build/
+bin/
+lib/
+
+# CMake generated files
+CMakeCache.txt
+CMakeFiles/
+CMakeLists.txt.user
+cmake_install.cmake
+Makefile
+*.cmake
+
+# Qt Creator & IDE settings
+*.user
+*.user.*
+.vscode/
+.idea/
+*.qtcreator
+
+# Temporary and object files
+*.o
+*.obj
+*.a
+*.so
+*.dylib
+*.dll
+*~
+*.swp
