@@ -25,6 +25,7 @@ set(SOURCES
     src/ui/ProfileDialog.cpp
     src/ui/HistoryDialog.cpp
     src/ui/LogViewer.cpp
+    resources/resources.qrc
 )
 
 set(HEADERS

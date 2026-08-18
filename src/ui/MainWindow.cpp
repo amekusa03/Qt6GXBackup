@@ -176,7 +176,10 @@ void MainWindow::setupUi()
 void MainWindow::setupTrayIcon()
 {
     m_trayIcon = new QSystemTrayIcon(this);
-    QIcon appIcon = QIcon::fromTheme("system-file-manager", QApplication::style()->standardIcon(QStyle::SP_DriveHDIcon));
+    QIcon appIcon = QIcon(":/icons/gxbackup.png");
+    if (appIcon.isNull()) {
+        appIcon = QIcon::fromTheme("system-file-manager", QApplication::style()->standardIcon(QStyle::SP_DriveHDIcon));
+    }
     m_trayIcon->setIcon(appIcon);
     m_trayIcon->setToolTip("GXBackup - Linux Smart Backup Tool");
 
