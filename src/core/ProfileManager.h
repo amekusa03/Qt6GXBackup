@@ -14,14 +14,14 @@ struct BackupProfile {
     QString targetDir;
     QStringList excludePatterns;
     
-    // スケジュール設定
+    // Schedule settings
     bool scheduleEnabled = false;
     QString scheduleType = "daily"; // "daily", "weekly"
     QString scheduleTime = "02:00"; // HH:mm
-    QList<int> scheduleDays;        // 1=月曜 ... 7=日曜 (weekly用)
-    QString lastRunDateTime;       // 最新実行日時
+    QList<int> scheduleDays;        // 1=Monday ... 7=Sunday (for weekly schedule)
+    QString lastRunDateTime;       // Last execution date & time
 
-    // スマート負荷制限設定
+    // Smart load throttling settings
     bool autoPauseOnHighLoad = true;
     double cpuThreshold = 80.0;
     double loadAvgThreshold = 4.0;
@@ -47,7 +47,7 @@ public:
     void updateProfile(const BackupProfile &profile);
     void removeProfile(const QString &id);
 
-    // プリセット生成
+    // Preset generators
     static BackupProfile createUserDataPreset(const QString &targetDir);
     static BackupProfile createSystemPreset(const QString &targetDir);
 

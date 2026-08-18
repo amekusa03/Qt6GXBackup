@@ -53,13 +53,13 @@ void RsyncProcess::startBackup(const QString &sourceDir,
         program = "rsync";
     }
 
-    // 基本的なrsyncオプション
-    // -a: アーカイブ (パーミッション、所有者、タイムスタンプを維持)
-    // -H: ハードリンク保持
-    // -A: ACL保持
-    // -X: 拡張属性保持
-    // --delete: ソースで削除されたファイルをバックアップ先でも削除（ミラーリング）
-    // --info=progress2: 進行状況を出力
+    // Basic rsync options:
+    // -a: Archive mode (preserve permissions, owner, timestamps)
+    // -H: Preserve hard links
+    // -A: Preserve ACLs
+    // -X: Preserve extended attributes
+    // --delete: Delete extraneous files from dest dirs (mirroring)
+    // --info=progress2: Output total transfer progress
     args << "-aHAX" << "--delete" << "--info=progress2";
 
     if (!linkDestDir.isEmpty()) {
@@ -72,7 +72,7 @@ void RsyncProcess::startBackup(const QString &sourceDir,
         }
     }
 
-    // ソースとターゲット
+    // Source and target directories
     QString src = sourceDir;
     if (!src.endsWith('/')) src += '/';
     args << src << targetDir;
@@ -119,7 +119,7 @@ void RsyncProcess::cancelBackup()
     if (m_state == Idle || m_state == Finished) return;
 
     if (m_state == Paused) {
-        resumeBackup(); // 終了シグナルを受け取れるように再開
+        resumeBackup(); // Resume process so it can receive termination signals
     }
 
     m_process.disconnect(this);
@@ -163,7 +163,7 @@ void RsyncProcess::onReadyReadStandardOutput()
     QString text = QString::fromUtf8(data);
     m_buffer += text;
 
-    // メモリ保護のためバッファサイズの上限チェック (64KB)
+    // Buffer capacity limit check for memory protection (64KB)
     if (m_buffer.size() > 65536) {
         m_buffer = m_buffer.right(32768);
     }
@@ -209,7 +209,7 @@ void RsyncProcess::onProcessFinished(int exitCode, QProcess::ExitStatus exitStat
 
 bool RsyncProcess::parseProgressLine(const QString &line)
 {
-    // 例: "  1,234,567  45%   12.34MB/s    0:00:15 (xfr#12, to-chk=45/100)"
+    // Example: "  1,234,567  45%   12.34MB/s    0:00:15 (xfr#12, to-chk=45/100)"
     static const QRegularExpression re(R"(\s*([\d,]+)\s+(\d+)%\s+([\d\.\w/]+)\s+([\d:]+))");
     QRegularExpressionMatch match = re.match(line);
 

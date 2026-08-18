@@ -2,6 +2,7 @@
 #include <QIcon>
 #include <QCommandLineParser>
 #include "MainWindow.h"
+#include "LanguageManager.h"
 
 int main(int argc, char *argv[])
 {
@@ -14,17 +15,17 @@ int main(int argc, char *argv[])
     app.setDesktopFileName("gxbackup"); 
     app.setWindowIcon(QIcon(":/images/icon.png"));
 
-
+    LanguageManager::instance().initLanguage();
 
     QCommandLineParser parser;
-    parser.setApplicationDescription("Linux Smart Backup Tool");
+    parser.setApplicationDescription(QCoreApplication::translate("main", "Linux Smart Backup Tool"));
     parser.addHelpOption();
     parser.addVersionOption();
 
-    QCommandLineOption autostartOption(QStringList() << "a" << "autostart", "Start application in system tray minimized for autostart.");
+    QCommandLineOption autostartOption(QStringList() << "a" << "autostart", QCoreApplication::translate("main", "Start application in system tray minimized for autostart."));
     parser.addOption(autostartOption);
 
-    QCommandLineOption minimizedOption(QStringList() << "m" << "minimized", "Start application minimized to system tray.");
+    QCommandLineOption minimizedOption(QStringList() << "m" << "minimized", QCoreApplication::translate("main", "Start application minimized to system tray."));
     parser.addOption(minimizedOption);
 
     parser.process(app);

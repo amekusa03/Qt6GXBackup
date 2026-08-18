@@ -21,6 +21,7 @@ set(SOURCES
     src/core/BackupController.cpp
     src/core/ScheduleManager.cpp
     src/core/AutostartManager.cpp
+    src/core/LanguageManager.cpp
     src/ui/MainWindow.cpp
     src/ui/ProfileDialog.cpp
     src/ui/HistoryDialog.cpp
@@ -36,6 +37,7 @@ set(HEADERS
     src/core/BackupController.h
     src/core/ScheduleManager.h
     src/core/AutostartManager.h
+    src/core/LanguageManager.h
     src/ui/MainWindow.h
     src/ui/ProfileDialog.h
     src/ui/HistoryDialog.h

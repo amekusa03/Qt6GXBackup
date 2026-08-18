@@ -17,7 +17,7 @@ ScheduleManager::ScheduleManager(ProfileManager *profileManager,
 
 void ScheduleManager::start()
 {
-    m_timer.start(60000); // 1分ごとにチェック
+    m_timer.start(60000); // Check every minute
     checkSchedules();
 }
 
@@ -30,7 +30,7 @@ bool ScheduleManager::isScheduleMissed(const BackupProfile &profile, const QDate
 {
     if (!profile.scheduleEnabled) return false;
 
-    // 前回のバックアップ完了履歴がない場合は未実行とみなし即実行が必要
+    // If there is no previous backup record, consider it missed and execute
     if (!lastEndTime.isValid()) {
         return true;
     }
@@ -38,14 +38,14 @@ bool ScheduleManager::isScheduleMissed(const BackupProfile &profile, const QDate
     QTime schedTime = QTime::fromString(profile.scheduleTime, "HH:mm");
     if (!schedTime.isValid()) return false;
 
-    // lastEndTime.date() から now.date() までの全日付について調べる
+    // Check all dates between lastEndTime.date() and now.date()
     QDate curDate = lastEndTime.date();
     QDate endDate = now.date();
 
     while (curDate <= endDate) {
         QDateTime candidateSlot(curDate, schedTime);
         
-        // 候補の予定日時 candidateSlot が (lastEndTime < candidateSlot <= now) の範囲にあるか
+        // Check if candidate slot is within (lastEndTime < candidateSlot <= now)
         if (candidateSlot > lastEndTime && candidateSlot <= now) {
             if (profile.scheduleType == "daily") {
                 return true;
@@ -66,7 +66,7 @@ void ScheduleManager::checkSchedules()
 {
     if (!m_profileManager || !m_backupController || !m_historyManager) return;
 
-    // 現在バックアップ実行中の場合はスキップ
+    // Skip if backup is currently running or paused
     if (m_backupController->state() == RsyncProcess::Running || m_backupController->state() == RsyncProcess::Paused) {
         return;
     }
@@ -77,15 +77,15 @@ void ScheduleManager::checkSchedules()
     for (auto &profile : profiles) {
         if (!profile.scheduleEnabled) continue;
 
-        // 前回のバックアップ成功レコードを取得
+        // Retrieve latest successful backup record
         HistoryRecord latestRec = m_historyManager->getLatestRecordForProfile(profile.id);
         QDateTime lastEndTime = QDateTime::fromString(latestRec.endDateTime, "yyyy-MM-dd HH:mm:ss");
 
-        // 前回終了日時がスケジュール予定を過ぎているか判定
+        // Determine if scheduled time was missed
         if (isScheduleMissed(profile, lastEndTime, now)) {
-            // 高負荷チェック
+            // Check system load
             if (profile.autoPauseOnHighLoad && m_backupController->monitor()->isHighLoad()) {
-                emit scheduleDelayed(profile.name, "高負荷のため自動バックアップの実行を一時保留中...");
+                emit scheduleDelayed(profile.name, tr("Auto backup postponed due to high load..."));
                 qDebug() << "Schedule delayed for" << profile.name << "due to high load.";
                 continue;
             }
@@ -95,7 +95,7 @@ void ScheduleManager::checkSchedules()
 
             emit scheduledBackupTriggered(profile, isCatchUp);
             m_backupController->startBackup(profile);
-            break; // 1回につき1プロファイルのみ起動
+            break; // Start only one profile per check cycle
         }
     }
 }

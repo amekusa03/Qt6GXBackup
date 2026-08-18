@@ -8,6 +8,7 @@ HistoryDialog::HistoryDialog(HistoryManager *historyManager, QWidget *parent)
     : QDialog(parent), m_historyManager(historyManager)
 {
     setupUi();
+    retranslateUi();
     refreshHistory();
 
     if (m_historyManager) {
@@ -17,14 +18,12 @@ HistoryDialog::HistoryDialog(HistoryManager *historyManager, QWidget *parent)
 
 void HistoryDialog::setupUi()
 {
-    setWindowTitle("バックアップ実行履歴 - GXBackup");
     resize(720, 450);
 
     QVBoxLayout *layout = new QVBoxLayout(this);
 
     m_tableWidget = new QTableWidget(this);
     m_tableWidget->setColumnCount(5);
-    m_tableWidget->setHorizontalHeaderLabels({"プロファイル名", "開始日時", "終了日時", "結果", "詳細"});
     m_tableWidget->horizontalHeader()->setSectionResizeMode(0, QHeaderView::ResizeToContents);
     m_tableWidget->horizontalHeader()->setSectionResizeMode(1, QHeaderView::ResizeToContents);
     m_tableWidget->horizontalHeader()->setSectionResizeMode(2, QHeaderView::ResizeToContents);
@@ -36,8 +35,8 @@ void HistoryDialog::setupUi()
     layout->addWidget(m_tableWidget);
 
     QHBoxLayout *btnLayout = new QHBoxLayout();
-    m_refreshBtn = new QPushButton("更新", this);
-    m_closeBtn = new QPushButton("閉じる", this);
+    m_refreshBtn = new QPushButton(this);
+    m_closeBtn = new QPushButton(this);
 
     btnLayout->addWidget(m_refreshBtn);
     btnLayout->addStretch();
@@ -47,6 +46,29 @@ void HistoryDialog::setupUi()
 
     connect(m_refreshBtn, &QPushButton::clicked, this, &HistoryDialog::refreshHistory);
     connect(m_closeBtn, &QPushButton::clicked, this, &QDialog::accept);
+}
+
+void HistoryDialog::retranslateUi()
+{
+    setWindowTitle(tr("Backup Execution History - GXBackup"));
+    m_tableWidget->setHorizontalHeaderLabels({
+        tr("Profile Name"),
+        tr("Start Time"),
+        tr("End Time"),
+        tr("Result"),
+        tr("Details")
+    });
+    m_refreshBtn->setText(tr("Refresh"));
+    m_closeBtn->setText(tr("Close"));
+    refreshHistory();
+}
+
+void HistoryDialog::changeEvent(QEvent *event)
+{
+    if (event->type() == QEvent::LanguageChange) {
+        retranslateUi();
+    }
+    QDialog::changeEvent(event);
 }
 
 void HistoryDialog::refreshHistory()
@@ -65,7 +87,7 @@ void HistoryDialog::refreshHistory()
         m_tableWidget->setItem(row, 1, new QTableWidgetItem(rec.startDateTime));
         m_tableWidget->setItem(row, 2, new QTableWidgetItem(rec.endDateTime));
 
-        QTableWidgetItem *statusItem = new QTableWidgetItem(rec.success ? "🟢 成功" : "🔴 失敗");
+        QTableWidgetItem *statusItem = new QTableWidgetItem(rec.success ? tr("🟢 Success") : tr("🔴 Failed"));
         m_tableWidget->setItem(row, 3, statusItem);
         m_tableWidget->setItem(row, 4, new QTableWidgetItem(rec.detailMessage));
     }

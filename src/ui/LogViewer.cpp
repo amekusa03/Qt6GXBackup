@@ -7,11 +7,11 @@ LogViewer::LogViewer(QWidget *parent)
     : QDialog(parent)
 {
     setupUi();
+    retranslateUi();
 }
 
 void LogViewer::setupUi()
 {
-    setWindowTitle("実行ログ - GXBackup");
     resize(700, 450);
 
     QVBoxLayout *layout = new QVBoxLayout(this);
@@ -23,8 +23,8 @@ void LogViewer::setupUi()
     layout->addWidget(m_textEdit);
 
     QHBoxLayout *btnLayout = new QHBoxLayout();
-    m_clearBtn = new QPushButton("ログ消去", this);
-    m_closeBtn = new QPushButton("閉じる", this);
+    m_clearBtn = new QPushButton(this);
+    m_closeBtn = new QPushButton(this);
     btnLayout->addWidget(m_clearBtn);
     btnLayout->addStretch();
     btnLayout->addWidget(m_closeBtn);
@@ -33,6 +33,21 @@ void LogViewer::setupUi()
 
     connect(m_clearBtn, &QPushButton::clicked, this, &LogViewer::clearLog);
     connect(m_closeBtn, &QPushButton::clicked, this, &QDialog::accept);
+}
+
+void LogViewer::retranslateUi()
+{
+    setWindowTitle(tr("Execution Log - GXBackup"));
+    m_clearBtn->setText(tr("Clear Log"));
+    m_closeBtn->setText(tr("Close"));
+}
+
+void LogViewer::changeEvent(QEvent *event)
+{
+    if (event->type() == QEvent::LanguageChange) {
+        retranslateUi();
+    }
+    QDialog::changeEvent(event);
 }
 
 void LogViewer::appendLog(const QString &line)

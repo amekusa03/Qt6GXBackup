@@ -3,138 +3,172 @@
 #include <QHBoxLayout>
 #include <QFormLayout>
 #include <QFileDialog>
-#include <QGroupBox>
-#include <QLabel>
 #include <QMessageBox>
-#include <QTime>
+#include <QDir>
 
 ProfileDialog::ProfileDialog(const BackupProfile &profile, QWidget *parent)
     : QDialog(parent), m_profile(profile)
 {
     setupUi();
+    retranslateUi();
     loadProfileToUi();
 }
 
 void ProfileDialog::setupUi()
 {
-    setWindowTitle("プロファイル設定 - GXBackup");
-    resize(580, 620);
+    resize(520, 560);
 
     QVBoxLayout *mainLayout = new QVBoxLayout(this);
-
-    // プリセットボタン
-    QHBoxLayout *presetLayout = new QHBoxLayout();
-    QPushButton *userPresetBtn = new QPushButton("👤 ユーザーデータ プリセット設定", this);
-    QPushButton *sysPresetBtn = new QPushButton("💻 システム全体 プリセット設定", this);
-    presetLayout->addWidget(userPresetBtn);
-    presetLayout->addWidget(sysPresetBtn);
-    mainLayout->addLayout(presetLayout);
-
-    connect(userPresetBtn, &QPushButton::clicked, this, &ProfileDialog::applyUserDataPreset);
-    connect(sysPresetBtn, &QPushButton::clicked, this, &ProfileDialog::applySystemPreset);
-
-    // 基本設定フォーム
     QFormLayout *formLayout = new QFormLayout();
 
+    m_nameLabel = new QLabel(this);
     m_nameEdit = new QLineEdit(this);
-    formLayout->addRow("プロファイル名:", m_nameEdit);
+    formLayout->addRow(m_nameLabel, m_nameEdit);
 
     QHBoxLayout *srcLayout = new QHBoxLayout();
+    m_srcLabel = new QLabel(this);
     m_sourceEdit = new QLineEdit(this);
-    QPushButton *srcBtn = new QPushButton("参照...", this);
+    m_srcBtn = new QPushButton(this);
     srcLayout->addWidget(m_sourceEdit);
-    srcLayout->addWidget(srcBtn);
-    formLayout->addRow("バックアップ元 (Source):", srcLayout);
+    srcLayout->addWidget(m_srcBtn);
+    formLayout->addRow(m_srcLabel, srcLayout);
 
     QHBoxLayout *tgtLayout = new QHBoxLayout();
+    m_tgtLabel = new QLabel(this);
     m_targetEdit = new QLineEdit(this);
-    QPushButton *tgtBtn = new QPushButton("参照...", this);
+    m_tgtBtn = new QPushButton(this);
     tgtLayout->addWidget(m_targetEdit);
-    tgtLayout->addWidget(tgtBtn);
-    formLayout->addRow("バックアップ先 (Target):", tgtLayout);
+    tgtLayout->addWidget(m_tgtBtn);
+    formLayout->addRow(m_tgtLabel, tgtLayout);
 
+    m_excludeLabel = new QLabel(this);
     m_excludeEdit = new QTextEdit(this);
-    m_excludeEdit->setPlaceholderText("除外パターン (1行に1つ)\n例:\n.cache\nDownloads\n*.tmp");
     m_excludeEdit->setMaximumHeight(80);
-    formLayout->addRow("除外パターン:", m_excludeEdit);
+    formLayout->addRow(m_excludeLabel, m_excludeEdit);
 
     mainLayout->addLayout(formLayout);
 
-    connect(srcBtn, &QPushButton::clicked, this, &ProfileDialog::browseSource);
-    connect(tgtBtn, &QPushButton::clicked, this, &ProfileDialog::browseTarget);
+    connect(m_srcBtn, &QPushButton::clicked, this, &ProfileDialog::browseSource);
+    connect(m_tgtBtn, &QPushButton::clicked, this, &ProfileDialog::browseTarget);
 
-    // スケジュール設定グループ
-    QGroupBox *schedGroup = new QGroupBox("📅 自動スケジュール実行", this);
-    QVBoxLayout *schedLayout = new QVBoxLayout(schedGroup);
+    // Schedule configuration group
+    m_schedGroup = new QGroupBox(this);
+    QVBoxLayout *schedLayout = new QVBoxLayout(m_schedGroup);
 
-    m_scheduleCheck = new QCheckBox("自動スケジュールバックアップを有効にする", schedGroup);
+    m_scheduleCheck = new QCheckBox(m_schedGroup);
     schedLayout->addWidget(m_scheduleCheck);
 
     QHBoxLayout *timeLayout = new QHBoxLayout();
-    m_scheduleTypeCombo = new QComboBox(schedGroup);
-    m_scheduleTypeCombo->addItem("毎日 (Daily)", "daily");
-    m_scheduleTypeCombo->addItem("毎週 (Weekly)", "weekly");
+    m_freqLabel = new QLabel(m_schedGroup);
+    m_scheduleTypeCombo = new QComboBox(m_schedGroup);
+    m_scheduleTypeCombo->addItem("", "daily");
+    m_scheduleTypeCombo->addItem("", "weekly");
 
-    m_scheduleTimeEdit = new QTimeEdit(QTime(3, 0), schedGroup);
+    m_scheduleTimeEdit = new QTimeEdit(QTime(3, 0), m_schedGroup);
     m_scheduleTimeEdit->setDisplayFormat("HH:mm");
 
-    timeLayout->addWidget(new QLabel("頻度:"));
+    m_timeLabel = new QLabel(m_schedGroup);
+
+    timeLayout->addWidget(m_freqLabel);
     timeLayout->addWidget(m_scheduleTypeCombo);
-    timeLayout->addWidget(new QLabel("実行時刻:"));
+    timeLayout->addWidget(m_timeLabel);
     timeLayout->addWidget(m_scheduleTimeEdit);
     timeLayout->addStretch();
     schedLayout->addLayout(timeLayout);
 
-    // 曜日選択
+    // Day selection
     QHBoxLayout *daysLayout = new QHBoxLayout();
-    daysLayout->addWidget(new QLabel("実行曜日:"));
-    QStringList dayNames = {"月", "火", "水", "木", "金", "土", "日"};
+    m_daysLabel = new QLabel(m_schedGroup);
+    daysLayout->addWidget(m_daysLabel);
     for (int i = 0; i < 7; ++i) {
-        QCheckBox *cb = new QCheckBox(dayNames[i], schedGroup);
+        QCheckBox *cb = new QCheckBox(m_schedGroup);
         m_dayCheckBoxes.append(cb);
         daysLayout->addWidget(cb);
     }
     schedLayout->addLayout(daysLayout);
 
-    mainLayout->addWidget(schedGroup);
+    mainLayout->addWidget(m_schedGroup);
 
     connect(m_scheduleCheck, &QCheckBox::toggled, this, &ProfileDialog::onScheduleToggled);
 
-    // スマート負荷制限設定グループ
-    QGroupBox *loadGroup = new QGroupBox("⚡ スマート負荷制限 (Auto-Pause/Throttling)", this);
-    QFormLayout *loadLayout = new QFormLayout(loadGroup);
+    // Smart load throttling settings group
+    m_loadGroup = new QGroupBox(this);
+    QFormLayout *loadLayout = new QFormLayout(m_loadGroup);
 
-    m_autoPauseCheck = new QCheckBox("高負荷時にバックアップ処理を自動一時停止する", loadGroup);
+    m_autoPauseCheck = new QCheckBox(m_loadGroup);
     m_autoPauseCheck->setChecked(true);
     loadLayout->addRow(m_autoPauseCheck);
 
-    m_cpuSpin = new QDoubleSpinBox(loadGroup);
+    m_cpuLabel = new QLabel(m_loadGroup);
+    m_cpuSpin = new QDoubleSpinBox(m_loadGroup);
     m_cpuSpin->setRange(10.0, 100.0);
     m_cpuSpin->setSuffix(" %");
     m_cpuSpin->setValue(80.0);
-    loadLayout->addRow("一時停止するCPU使用率閾値:", m_cpuSpin);
+    loadLayout->addRow(m_cpuLabel, m_cpuSpin);
 
-    m_loadAvgSpin = new QDoubleSpinBox(loadGroup);
+    m_loadAvgLabel = new QLabel(m_loadGroup);
+    m_loadAvgSpin = new QDoubleSpinBox(m_loadGroup);
     m_loadAvgSpin->setRange(0.5, 64.0);
     m_loadAvgSpin->setSingleStep(0.5);
     m_loadAvgSpin->setValue(4.0);
-    loadLayout->addRow("一時停止するLoad Average閾値:", m_loadAvgSpin);
+    loadLayout->addRow(m_loadAvgLabel, m_loadAvgSpin);
 
-    mainLayout->addWidget(loadGroup);
+    mainLayout->addWidget(m_loadGroup);
 
-    // 保存・キャンセルボタン
+    // Save & Cancel buttons
     QHBoxLayout *btnLayout = new QHBoxLayout();
     btnLayout->addStretch();
-    QPushButton *saveBtn = new QPushButton("保存", this);
-    QPushButton *cancelBtn = new QPushButton("キャンセル", this);
-    saveBtn->setDefault(true);
+    m_saveBtn = new QPushButton(this);
+    m_cancelBtn = new QPushButton(this);
+    m_saveBtn->setDefault(true);
 
-    btnLayout->addWidget(saveBtn);
-    btnLayout->addWidget(cancelBtn);
+    btnLayout->addWidget(m_saveBtn);
+    btnLayout->addWidget(m_cancelBtn);
     mainLayout->addLayout(btnLayout);
 
-    connect(saveBtn, &QPushButton::clicked, this, &ProfileDialog::onSaveClicked);
-    connect(cancelBtn, &QPushButton::clicked, this, &QDialog::reject);
+    connect(m_saveBtn, &QPushButton::clicked, this, &ProfileDialog::onSaveClicked);
+    connect(m_cancelBtn, &QPushButton::clicked, this, &QDialog::reject);
+}
+
+void ProfileDialog::retranslateUi()
+{
+    setWindowTitle(tr("Profile Settings - GXBackup"));
+    m_nameLabel->setText(tr("Profile Name:"));
+    m_srcLabel->setText(tr("Backup Source:"));
+    m_srcBtn->setText(tr("Browse..."));
+    m_tgtLabel->setText(tr("Backup Target:"));
+    m_tgtBtn->setText(tr("Browse..."));
+    m_excludeLabel->setText(tr("Exclude Patterns:"));
+    m_excludeEdit->setPlaceholderText(tr("Exclude patterns (1 per line)\nExample:\n.cache\nDownloads\n*.tmp"));
+
+    m_schedGroup->setTitle(tr("📅 Automatic Schedule Execution"));
+    m_scheduleCheck->setText(tr("Enable automatic scheduled backup"));
+    m_freqLabel->setText(tr("Frequency:"));
+    m_scheduleTypeCombo->setItemText(0, tr("Daily"));
+    m_scheduleTypeCombo->setItemText(1, tr("Weekly"));
+    m_timeLabel->setText(tr("Execution Time:"));
+    m_daysLabel->setText(tr("Days:"));
+
+    QStringList dayNames = {tr("Mon"), tr("Tue"), tr("Wed"), tr("Thu"), tr("Fri"), tr("Sat"), tr("Sun")};
+    for (int i = 0; i < 7 && i < m_dayCheckBoxes.size(); ++i) {
+        m_dayCheckBoxes[i]->setText(dayNames[i]);
+    }
+
+    m_loadGroup->setTitle(tr("⚡ Smart Load Throttling (Auto-Pause)"));
+    m_autoPauseCheck->setText(tr("Automatically pause backup on high load"));
+    m_cpuLabel->setText(tr("CPU threshold for pause:"));
+    m_loadAvgLabel->setText(tr("Load average threshold for pause:"));
+
+    m_saveBtn->setText(tr("Save"));
+    m_cancelBtn->setText(tr("Cancel"));
+}
+
+void ProfileDialog::changeEvent(QEvent *event)
+{
+    if (event->type() == QEvent::LanguageChange) {
+        retranslateUi();
+    }
+    QDialog::changeEvent(event);
 }
 
 void ProfileDialog::onScheduleToggled(bool enabled)
@@ -173,7 +207,7 @@ void ProfileDialog::loadProfileToUi()
 
 void ProfileDialog::browseSource()
 {
-    QString dir = QFileDialog::getExistingDirectory(this, "バックアップ元ディレクトリを選択", m_sourceEdit->text());
+    QString dir = QFileDialog::getExistingDirectory(this, tr("Select Backup Source Directory"), m_sourceEdit->text());
     if (!dir.isEmpty()) {
         m_sourceEdit->setText(dir);
     }
@@ -181,7 +215,7 @@ void ProfileDialog::browseSource()
 
 void ProfileDialog::browseTarget()
 {
-    QString dir = QFileDialog::getExistingDirectory(this, "バックアップ先ディレクトリを選択", m_targetEdit->text());
+    QString dir = QFileDialog::getExistingDirectory(this, tr("Select Backup Target Directory"), m_targetEdit->text());
     if (!dir.isEmpty()) {
         m_targetEdit->setText(dir);
     }
@@ -204,15 +238,15 @@ void ProfileDialog::applySystemPreset()
 void ProfileDialog::onSaveClicked()
 {
     if (m_nameEdit->text().trimmed().isEmpty()) {
-        QMessageBox::warning(this, "入力エラー", "プロファイル名を入力してください。");
+        QMessageBox::warning(this, tr("Input Error"), tr("Please enter a profile name."));
         return;
     }
     if (m_sourceEdit->text().trimmed().isEmpty()) {
-        QMessageBox::warning(this, "入力エラー", "バックアップ元を指定してください。");
+        QMessageBox::warning(this, tr("Input Error"), tr("Please specify backup source."));
         return;
     }
     if (m_targetEdit->text().trimmed().isEmpty()) {
-        QMessageBox::warning(this, "入力エラー", "バックアップ先を指定してください。");
+        QMessageBox::warning(this, tr("Input Error"), tr("Please specify backup target."));
         return;
     }
 

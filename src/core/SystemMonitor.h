@@ -34,11 +34,11 @@ private slots:
 
 private:
     QTimer m_timer;
-    double m_cpuThreshold = 80.0;     // デフォルト 80%
-    double m_loadAvgThreshold = 4.0;  // デフォルト 4.0
+    double m_cpuThreshold = 80.0;     // Default 80%
+    double m_loadAvgThreshold = 4.0;  // Default 4.0
     bool m_wasHighLoad = false;
 
-    // CPU使用率パース用の前回の値
+    // Previous tick values for calculating CPU usage percentage
     unsigned long long m_prevIdleTicks = 0;
     unsigned long long m_prevTotalTicks = 0;
 

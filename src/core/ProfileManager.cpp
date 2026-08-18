@@ -5,6 +5,7 @@
 #include <QDir>
 #include <QStandardPaths>
 #include <QUuid>
+#include <QCoreApplication>
 #include <QDebug>
 
 QJsonObject BackupProfile::toJson() const
@@ -160,7 +161,7 @@ BackupProfile ProfileManager::createUserDataPreset(const QString &targetDir)
 {
     BackupProfile p;
     p.id = QUuid::createUuid().toString(QUuid::WithoutBraces);
-    p.name = "ユーザーデータ バックアップ";
+    p.name = QCoreApplication::translate("ProfileManager", "User Data Backup");
     p.sourceDir = QDir::homePath();
     p.targetDir = targetDir;
     p.excludePatterns = QStringList{
@@ -183,7 +184,7 @@ BackupProfile ProfileManager::createSystemPreset(const QString &targetDir)
 {
     BackupProfile p;
     p.id = QUuid::createUuid().toString(QUuid::WithoutBraces);
-    p.name = "システム全体 バックアップ";
+    p.name = QCoreApplication::translate("ProfileManager", "Full System Backup");
     p.sourceDir = "/";
     p.targetDir = targetDir;
     p.excludePatterns = QStringList{
@@ -202,7 +203,7 @@ BackupProfile ProfileManager::createSystemPreset(const QString &targetDir)
     p.scheduleEnabled = true;
     p.scheduleType = "weekly";
     p.scheduleTime = "04:00";
-    p.scheduleDays = QList<int>{7}; // 日曜
+    p.scheduleDays = QList<int>{7}; // Sunday
     p.autoPauseOnHighLoad = true;
     p.cpuThreshold = 75.0;
     p.loadAvgThreshold = 3.5;

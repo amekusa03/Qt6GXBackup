@@ -21,7 +21,7 @@ public:
     void start();
     void stop();
 
-    // 追いつき判定関数
+    // Function to check if a schedule was missed (catch-up detection)
     bool isScheduleMissed(const BackupProfile &profile, const QDateTime &lastEndTime, const QDateTime &now) const;
 
 signals:

@@ -92,7 +92,7 @@ void HistoryManager::addRecord(const HistoryRecord &record)
     if (r.id.isEmpty()) {
         r.id = QUuid::createUuid().toString(QUuid::WithoutBraces);
     }
-    // 最新のものが先頭にくるように挿入
+    // Insert so that the latest record comes first
     m_history.prepend(r);
     saveHistory();
 }
