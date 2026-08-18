@@ -208,6 +208,15 @@ void MainWindow::setupTrayIcon()
 
     QAction *quitAction = m_trayMenu->addAction("🚪 完全に終了");
     connect(quitAction, &QAction::triggered, this, [this]() {
+        if (m_backupController && (m_backupController->state() == RsyncProcess::Running || m_backupController->state() == RsyncProcess::Paused)) {
+            QMessageBox::StandardButton reply = QMessageBox::question(this, "確認",
+                "バックアップが実行中です。終了するとバックアップは停止されます。本当に完全に終了しますか？",
+                QMessageBox::Yes | QMessageBox::No, QMessageBox::No);
+            if (reply != QMessageBox::Yes) {
+                return;
+            }
+            m_backupController->cancelBackup();
+        }
         m_forceQuit = true;
         qApp->quit();
     });
@@ -222,9 +231,6 @@ void MainWindow::setStartMinimized(bool minimized)
 {
     if (minimized) {
         hide();
-        if (m_trayIcon) {
-            m_trayIcon->showMessage("GXBackup", "バックグラウンドでシステムトレイに常駐しました。", QSystemTrayIcon::Information, 3000);
-        }
     } else {
         show();
     }
@@ -235,10 +241,10 @@ void MainWindow::closeEvent(QCloseEvent *event)
     if (!m_forceQuit && m_trayIcon->isVisible()) {
         event->ignore();
         this->hide();
-        m_trayIcon->showMessage("GXBackup 常駐中",
-                                "バックグラウンドでバックアップの監視を行っています。\n終了するにはトレイアイコンから「完全に終了」を選択してください。",
-                                QSystemTrayIcon::Information, 3000);
     } else {
+        if (m_backupController && (m_backupController->state() == RsyncProcess::Running || m_backupController->state() == RsyncProcess::Paused)) {
+            m_backupController->cancelBackup();
+        }
         event->accept();
     }
 }
@@ -258,13 +264,7 @@ void MainWindow::onTrayIconActivated(QSystemTrayIcon::ActivationReason reason)
 void MainWindow::onToggleAutostart(bool checked)
 {
     bool ok = AutostartManager::setAutostartEnabled(checked);
-    if (ok) {
-        if (checked) {
-            m_trayIcon->showMessage("自動起動設定", "Linuxログイン時の自動起動を有効にしました。", QSystemTrayIcon::Information, 3000);
-        } else {
-            m_trayIcon->showMessage("自動起動設定", "自動起動を解除しました。", QSystemTrayIcon::Information, 3000);
-        }
-    } else {
+    if (!ok) {
         QMessageBox::warning(this, "エラー", "自動起動設定の更新に失敗しました。");
         m_autostartAction->setChecked(!checked);
     }
@@ -278,23 +278,17 @@ void MainWindow::onOpenHistory()
 
 void MainWindow::onScheduledBackupTriggered(const BackupProfile &profile, bool isCatchUp)
 {
+    Q_UNUSED(isCatchUp);
     int idx = m_profileCombo->findData(profile.id);
     if (idx != -1) {
         m_profileCombo->setCurrentIndex(idx);
     }
-    QString msg = isCatchUp 
-        ? QString("未実行のスケジュール条件を満たしたため、プロファイル「%1」の追いつきバックアップを開始しました。").arg(profile.name)
-        : QString("定時スケジュールに従い、プロファイル「%1」の自動バックアップを開始しました。").arg(profile.name);
-
-    m_trayIcon->showMessage(isCatchUp ? "未実行分の追いつきバックアップ開始" : "スケジュールバックアップ開始",
-                            msg, QSystemTrayIcon::Information, 5000);
 }
 
 void MainWindow::onScheduleDelayed(const QString &profileName, const QString &reason)
 {
-    m_trayIcon->showMessage("スケジュール実行延期",
-                            QString("「%1」: %2").arg(profileName, reason),
-                            QSystemTrayIcon::Warning, 4000);
+    Q_UNUSED(profileName);
+    Q_UNUSED(reason);
 }
 
 void MainWindow::applyStyleSheet()
@@ -558,14 +552,7 @@ void MainWindow::onBackupFinished(bool success, const QString &message)
     m_profileCombo->setEnabled(true);
     m_pauseBtn->setText("⏸ 一時停止");
 
-    if (success) {
-        if (m_trayIcon) {
-            m_trayIcon->showMessage("バックアップ完了", message, QSystemTrayIcon::Information, 5000);
-        }
-        if (isVisible()) {
-            QMessageBox::information(this, "完了", message);
-        }
-    } else {
+    if (!success) {
         if (m_trayIcon) {
             m_trayIcon->showMessage("バックアップエラー", message, QSystemTrayIcon::Critical, 5000);
         }
@@ -578,9 +565,6 @@ void MainWindow::onBackupFinished(bool success, const QString &message)
 void MainWindow::onLoadWarning(const QString &warningMsg)
 {
     m_autoPauseIndicator->setText("🟡 " + warningMsg);
-    if (m_trayIcon) {
-        m_trayIcon->showMessage("スマート負荷制御", warningMsg, QSystemTrayIcon::Warning, 4000);
-    }
 }
 
 void MainWindow::onMetricsUpdated(double cpuPercent, double loadAvg)

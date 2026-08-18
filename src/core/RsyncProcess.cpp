@@ -15,9 +15,20 @@ RsyncProcess::RsyncProcess(QObject *parent)
 
 RsyncProcess::~RsyncProcess()
 {
+    m_process.disconnect(this);
+    if (m_state == Paused) {
+        resumeBackup();
+    }
     if (m_process.state() != QProcess::NotRunning) {
-        m_process.kill();
-        m_process.waitForFinished(1000);
+        qint64 pid = m_process.processId();
+        m_process.terminate();
+        if (!m_process.waitForFinished(1000)) {
+            if (pid > 0) {
+                ::kill(-static_cast<pid_t>(pid), SIGKILL);
+            }
+            m_process.kill();
+            m_process.waitForFinished(500);
+        }
     }
 }
 
@@ -66,6 +77,11 @@ void RsyncProcess::startBackup(const QString &sourceDir,
     if (!src.endsWith('/')) src += '/';
     args << src << targetDir;
 
+    connect(&m_process, &QProcess::readyReadStandardOutput, this, &RsyncProcess::onReadyReadStandardOutput, Qt::UniqueConnection);
+    connect(&m_process, &QProcess::readyReadStandardError, this, &RsyncProcess::onReadyReadStandardError, Qt::UniqueConnection);
+    connect(&m_process, QOverload<int, QProcess::ExitStatus>::of(&QProcess::finished),
+            this, &RsyncProcess::onProcessFinished, Qt::UniqueConnection);
+
     m_lastError.clear();
     m_buffer.clear();
     setState(Running);
@@ -106,10 +122,23 @@ void RsyncProcess::cancelBackup()
         resumeBackup(); // 終了シグナルを受け取れるように再開
     }
 
+    m_process.disconnect(this);
+    qint64 pid = m_process.processId();
+
     m_process.terminate();
-    if (!m_process.waitForFinished(2000)) {
+    if (!m_process.waitForFinished(1000)) {
+        if (pid > 0) {
+            ::kill(-static_cast<pid_t>(pid), SIGKILL);
+        }
         m_process.kill();
+        m_process.waitForFinished(500);
     }
+
+    connect(&m_process, &QProcess::readyReadStandardOutput, this, &RsyncProcess::onReadyReadStandardOutput, Qt::UniqueConnection);
+    connect(&m_process, &QProcess::readyReadStandardError, this, &RsyncProcess::onReadyReadStandardError, Qt::UniqueConnection);
+    connect(&m_process, QOverload<int, QProcess::ExitStatus>::of(&QProcess::finished),
+            this, &RsyncProcess::onProcessFinished, Qt::UniqueConnection);
+
     setState(Idle);
 }
 
@@ -145,8 +174,9 @@ void RsyncProcess::onReadyReadStandardOutput()
         m_buffer = m_buffer.mid(pos + 1);
 
         if (!line.isEmpty()) {
-            parseProgressLine(line);
-            emit logOutput(line);
+            if (!parseProgressLine(line)) {
+                emit logOutput(line);
+            }
         }
     }
 }
