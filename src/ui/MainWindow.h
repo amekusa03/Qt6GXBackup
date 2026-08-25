@@ -130,6 +130,7 @@ private:
     void applyStyleSheet();
     void updateProfileCombo();
     void retranslateUi();
+    void setProfileControlsEnabled(bool enabled);
     BackupProfile currentSelectedProfile() const;
 };
 

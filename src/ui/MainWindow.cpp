@@ -432,6 +432,14 @@ void MainWindow::updateProfileCombo()
     m_profileCombo->blockSignals(false);
 }
 
+void MainWindow::setProfileControlsEnabled(bool enabled)
+{
+    m_profileCombo->setEnabled(enabled);
+    m_newBtn->setEnabled(enabled);
+    m_editBtn->setEnabled(enabled);
+    m_deleteBtn->setEnabled(enabled);
+}
+
 BackupProfile MainWindow::currentSelectedProfile() const
 {
     QString id = m_profileCombo->currentData().toString();
@@ -496,7 +504,7 @@ void MainWindow::onStartBackup()
     m_startBtn->setEnabled(false);
     m_pauseBtn->setEnabled(true);
     m_cancelBtn->setEnabled(true);
-    m_profileCombo->setEnabled(false);
+    setProfileControlsEnabled(false);
 
     m_backupController->startBackup(p);
 }
@@ -525,7 +533,7 @@ void MainWindow::onStateChanged(RsyncProcess::State state)
         m_startBtn->setEnabled(true);
         m_pauseBtn->setEnabled(false);
         m_cancelBtn->setEnabled(false);
-        m_profileCombo->setEnabled(true);
+        setProfileControlsEnabled(true);
         m_pauseBtn->setText(tr("⏸ Pause"));
         break;
     case RsyncProcess::Running:
@@ -534,7 +542,7 @@ void MainWindow::onStateChanged(RsyncProcess::State state)
         m_startBtn->setEnabled(false);
         m_pauseBtn->setEnabled(true);
         m_cancelBtn->setEnabled(true);
-        m_profileCombo->setEnabled(false);
+        setProfileControlsEnabled(false);
         break;
     case RsyncProcess::Paused:
         m_statusLabel->setText(tr("Paused (High load or manual)"));
@@ -542,14 +550,14 @@ void MainWindow::onStateChanged(RsyncProcess::State state)
         m_startBtn->setEnabled(false);
         m_pauseBtn->setEnabled(true);
         m_cancelBtn->setEnabled(true);
-        m_profileCombo->setEnabled(false);
+        setProfileControlsEnabled(false);
         break;
     case RsyncProcess::Finished:
         m_statusLabel->setText(tr("Completed"));
         m_startBtn->setEnabled(true);
         m_pauseBtn->setEnabled(false);
         m_cancelBtn->setEnabled(false);
-        m_profileCombo->setEnabled(true);
+        setProfileControlsEnabled(true);
         m_pauseBtn->setText(tr("⏸ Pause"));
         break;
     case RsyncProcess::Error:
@@ -557,7 +565,7 @@ void MainWindow::onStateChanged(RsyncProcess::State state)
         m_startBtn->setEnabled(true);
         m_pauseBtn->setEnabled(false);
         m_cancelBtn->setEnabled(false);
-        m_profileCombo->setEnabled(true);
+        setProfileControlsEnabled(true);
         m_pauseBtn->setText(tr("⏸ Pause"));
         break;
     }
@@ -606,7 +614,7 @@ void MainWindow::onBackupFinished(bool success, const QString &message)
     m_startBtn->setEnabled(true);
     m_pauseBtn->setEnabled(false);
     m_cancelBtn->setEnabled(false);
-    m_profileCombo->setEnabled(true);
+    setProfileControlsEnabled(true);
     m_pauseBtn->setText(tr("⏸ Pause"));
 
     if (!success) {
